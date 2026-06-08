@@ -1,78 +1,138 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 
-function ProductDetail({ products, addToCart, toggleWishlist, wishlist, trackHistory }) {
+export default function ProductDetail({ productsList = [], products = [], addToCart }) {
   const { id } = useParams();
-  const product = products.find(p => p.id === parseInt(id));
+  const navigate = useNavigate();
   const [selectedSize, setSelectedSize] = useState('');
+  const [orderPlaced, setOrderPlaced] = useState(false);
 
-  useEffect(() => {
-  if (product) {
-    trackHistory(product.id);
+  // 1. Safe fallback resolution to locate the matching item
+  const coreProductsArray = productsList.length > 0 ? productsList : products;
+  const product = coreProductsArray.find(p => String(p.id) === String(id));
+
+  // 2. Crash Guard: If the product database is loading or the ID doesn't exist, show a helpful message instead of a blank screen
+  if (!product) {
+    return (
+      <div style={{ padding: '60px 4%', textAlign: 'center', minHeight: '70vh', fontFamily: 'sans-serif' }}>
+        <h2>Product Not Found</h2>
+        <p style={{ color: '#666' }}>We couldn't locate the catalog item with ID: {id}. It might have been cleared from local storage.</p>
+        <button 
+          onClick={() => navigate('/')} 
+          style={{ padding: '10px 20px', background: '#111', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '15px' }}
+        >
+          Return to Catalog
+        </button>
+      </div>
+    );
   }
-}, [id, product, trackHistory]);
 
-  if (!product) return <div style={{ padding: '40px 6%' }}>Product architecture not found.</div>;
+  const handleOrderSubmission = () => {
+    if (!selectedSize && product.size && product.size.length > 0 && product.size[0] !== "Free Size") {
+      alert("Please select a variant size option before ordering.");
+      return;
+    }
 
-  // AI Recommendation Engine: Automatically builds a pairing combination setup
-  const aiCoordinates = products.filter(p => p.id !== product.id && p.category !== product.category).slice(0, 2);
+    // Call the parent state handler to inject the item into your persistent global bag
+    if (addToCart) {
+      addToCart({
+        ...product,
+        chosenSize: selectedSize || product.size?.[0] || "Standard"
+      });
+    }
+
+    setOrderPlaced(true);
+    alert(`🎉 Success! Added "${product.name}" to your secure bag.`);
+  };
 
   return (
-    <div style={{ padding: '30px 6% 100px 6%' }}>
-      <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 400px' }}>
-          <img src={product.img} alt="" style={{ width: '100%', maxHeight: '500px', objectFit: 'cover', borderRadius: '8px' }} />
-        </div>
-        
-        <div style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div>
-            <h2>{product.name}</h2>
-            <p style={{ color: '#aaa', margin: '4px 0' }}>{product.brand} Collection</p>
-          </div>
-          
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>₹{product.price}</div>
-          <p style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>{product.desc}</p>
+    <div style={{ padding: '40px 6%', minHeight: '80vh', fontFamily: 'sans-serif', display: 'flex', gap: '50px', flexWrap: 'wrap' }}>
+      
+      {/* LEFT COLUMN: VISUAL MEDIA CONTAINER */}
+      <div style={{ flex: '1 1 400px', maxWidth: '500px' }}>
+        <img 
+          src={product.img || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600"} 
+          alt={product.name} 
+          style={{ width: '100%', borderRadius: '8px', objectFit: 'cover', border: '1px solid #eee' }} 
+        />
+      </div>
 
+      {/* RIGHT COLUMN: DISPATCH/ORDER MATRIX SUMMARY */}
+      <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>
+        <span style={{ textTransform: 'uppercase', color: '#777', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px' }}>{product.brand || "FashionHub Core"}</span>
+        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '800' }}>{product.name}</h1>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', margin: '5px 0' }}>
+          <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff3f6c' }}>₹{product.price}</span>
+          {product.oldPrice && <span style={{ textDecoration: 'line-through', color: '#aaa', fontSize: '16px' }}>₹{product.oldPrice}</span>}
+          {product.discount && <span style={{ color: '#27ae60', fontSize: '14px', fontWeight: 'bold' }}>({product.discount}% OFF)</span>}
+        </div>
+
+        <p style={{ color: '#444', fontSize: '14px', lineHeight: '1.6', margin: '10px 0' }}>
+          {product.desc || "High-quality, curated garment inventory layer built sustainably for versatile everyday wardrobe configuration styles."}
+        </p>
+
+        <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '10px 0' }} />
+
+        {/* SIZE VARIANT INPUT CONTROLS */}
+        {product.size && product.size.length > 0 && (
           <div>
-            <h5 style={{ marginBottom: '8px', fontSize: '0.75rem' }}>CHOOSE SIZE VARIANT:</h5>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>SELECT SIZE</h4>
             <div style={{ display: 'flex', gap: '10px' }}>
-              {product.size.map(sz => (
-                <button key={sz} onClick={() => setSelectedSize(sz)} style={{ padding: '10px 16px', background: selectedSize === sz ? '#111' : '#fff', color: selectedSize === sz ? '#fff' : '#111', border: '1px solid #111', cursor: 'pointer', fontWeight: 'bold', borderRadius: '4px' }}>{sz}</button>
+              {product.size.map((sz) => (
+                <button
+                  key={sz}
+                  onClick={() => setSelectedSize(sz)}
+                  style={{
+                    padding: '10px 18px',
+                    border: selectedSize === sz ? '2px solid #ff3f6c' : '1px solid #ccc',
+                    background: selectedSize === sz ? '#fff' : '#f9f9f9',
+                    color: selectedSize === sz ? '#ff3f6c' : '#111',
+                    fontWeight: 'bold',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    transition: 'all 0.1s ease'
+                  }}
+                >
+                  {sz}
+                </button>
               ))}
             </div>
           </div>
+        )}
+
+        {/* ORDER DISPATCH ACTIONS */}
+        <div style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
+          <button 
+            onClick={handleOrderSubmission}
+            style={{
+              flex: 1, padding: '15px', background: '#ff3f6c', color: '#fff',
+              border: 'none', borderRadius: '4px', fontSize: '15px', fontWeight: 'bold',
+              cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.5px'
+            }}
+          >
+            🛒 Add to Shopping Bag
+          </button>
+          
+          <button 
+            onClick={() => navigate('/orders')}
+            style={{
+              padding: '15px 20px', background: '#111', color: '#fff',
+              border: 'none', borderRadius: '4px', fontSize: '14px', fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            📦 Track Orders
+          </button>
         </div>
+
+        {orderPlaced && (
+          <div style={{ marginTop: '15px', padding: '12px', background: '#e8f8f5', color: '#27ae60', borderRadius: '4px', fontSize: '13px', fontWeight: '600', border: '1px solid #d1f2eb' }}>
+            ✓ Item checked out successfully. You can inspect tracking data instantly inside your Dashboard portal!
+          </div>
+        )}
       </div>
 
-      {/* --- BONUS EXPERT FEATURE: SYSTEM INTEL AI OUTFIT GENERATOR MATRIX --- */}
-      <div style={{ marginTop: '50px', background: 'rgba(212,175,55,0.05)', padding: '25px', borderRadius: '8px', border: '1px dashed #d4af37' }}>
-        <h4 style={{ color: '#b38f1d', margin: '0 0 4px 0', fontSize: '1rem', fontWeight: '800' }}>🤖 AI OUTFIT GENERATOR</h4>
-        <p style={{ margin: '0 0 20px 0', fontSize: '0.8rem', opacity: 0.8 }}>Our stylistic engines processed this metadata to generate visual pairings to complete your look.</p>
-        
-        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-          {aiCoordinates.map(aiItem => (
-            <div key={aiItem.id} style={{ display: 'flex', gap: '12px', background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #eee', flex: '1 1 240px', alignItems: 'center' }}>
-              <img src={aiItem.img} style={{ width: '50px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} alt="" />
-              <div>
-                <h6 style={{ margin: 0, fontSize: '0.8rem' }}>{aiItem.name}</h6>
-                <strong style={{ fontSize: '0.8rem', color: '#111' }}>₹{aiItem.price}</strong>
-                <Link to={`/product/${aiItem.id}`} style={{ display: 'block', fontSize: '0.75rem', color: '#d4af37', textDecoration: 'none', marginTop: '4px' }}>Pair This Style →</Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* --- UI/UX CRITICAL CONTEXT: FIXED MOBILE STICKY VIEW PORT ADD CART BAR --- */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', boxShadow: '0 -4px 15px rgba(0,0,0,0.1)', padding: '12px 6%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 850 }}>
-        <div>
-          <span style={{ fontSize: '0.75rem', color: '#666', display: 'block' }}>Selected Variant: {selectedSize || 'None'}</span>
-          <strong style={{ fontSize: '1.1rem' }}>₹{product.price}</strong>
-        </div>
-        <button onClick={() => { if(!selectedSize) return alert('Please Select a Size first.'); addToCart(product, selectedSize); }} style={{ padding: '12px 30px', background: '#d4af37', border: 'none', color: '#111', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer', textTransform: 'uppercase' }}>Add to Bag</button>
-      </div>
     </div>
   );
 }
-
-export default ProductDetail;

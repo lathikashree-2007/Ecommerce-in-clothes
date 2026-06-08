@@ -9,7 +9,7 @@ import Login from '../Pages/Login';
 import Orders from '../Pages/Orders';
 import Profile from '../Pages/Profile';
 import AdminDashboard from '../Pages/AdminDashboard';
-
+import Cart from '../Pages/Cart';
 // NEW DEPLOYMENT PAGES & SHARED LAYOUT COMPONENTS
 import Navbar from '../Components/Navbar';
 import Footer from '../Components/Footer';
@@ -898,6 +898,16 @@ export default function Application() {
   <Route path="/faq" element={<FAQ />} />
   <Route path="/privacy" element={<PrivacyPolicy />} />
   <Route path="/terms" element={<TermsConditions />} />
+  <Route 
+  path="/cart" 
+  element={
+    <Cart 
+      cart={cart} 
+      setCart={setCart} 
+      onPlaceOrder={(newOrder) => setOrdersList([newOrder, ...ordersList])} 
+    />
+  } 
+/>
 </Routes>
         </div>
 
