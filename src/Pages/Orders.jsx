@@ -1,178 +1,107 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-export default function Orders() {
-  const [ordersList, setOrdersList] = useState([]);
-  const [selectedOrderId, setSelectedOrderId] = useState(null); 
-  const [cancelReason, setCancelReason] = useState("");         
-  const [customReason, setCustomReason] = useState("");         
-  const [showReasonModal, setShowReasonModal] = useState(false); 
-
-  // Synchronizes directly with the application's core database key name
-  const syncOrderHistory = () => {
-    const saved = localStorage.getItem('userOrders');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setOrdersList(parsed);
-        }
-      } catch (e) {
-        setOrdersList([]);
-      }
-    } else {
-      setOrdersList([]);
-    }
-  };
-
-  useEffect(() => {
-    syncOrderHistory();
-    window.addEventListener('storage', syncOrderHistory);
-    return () => window.removeEventListener('storage', syncOrderHistory);
-  }, []);
-
-  const initiateCancelOrder = (orderId) => {
-    setSelectedOrderId(orderId);
-    setCancelReason("");
-    setCustomReason("");
-    setShowReasonModal(true);
-  };
-
-  const handleConfirmCancellation = (e) => {
-    e.preventDefault();
-    const finalReason = cancelReason === "Other" ? customReason.trim() : cancelReason;
-
-    if (!finalReason) {
-      alert("Please choose a valid cancellation reason.");
-      return;
-    }
-
-    const updated = ordersList.map(order => {
-      if (order.orderId === selectedOrderId) {
-        return { ...order, status: "Canceled", cancellationReason: finalReason };
-      }
-      return order;
-    });
-
-    setOrdersList(updated);
-    localStorage.setItem('userOrders', JSON.stringify(updated));
-    setShowReasonModal(false);
-    setSelectedOrderId(null);
-    alert("Order successfully canceled.");
-  };
+export default function Orders({ orders = [], user }) {
+  const myOrders = orders.filter(order => 
+    !order.userEmail || order.userEmail === (user ? user.email : "") || user?.email === "guest@fashionhub.com"
+  );
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.heading}>Your Purchase History</h2>
-      
-      {ordersList.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '50px 20px', color: '#666' }}>
-          <h3>No matching orders found.</h3>
-          <p>Please place an item in your active bag and complete the checkout sequence!</p>
-        </div>
-      ) : (
-        <div style={styles.ordersGrid}>
-          {ordersList.map((order) => (
-            <div key={order.orderId} style={styles.orderCard}>
-              <div style={styles.orderHeader}>
-                <div><span style={styles.metaLabel}>ORDER ID:</span> #{order.orderId}</div>
-                <div><span style={styles.metaLabel}>PLACED ON:</span> {order.date}</div>
-                <div>
-                  <span style={{ 
-                    ...styles.statusBadge, 
-                    backgroundColor: order.status === "Canceled" ? "#ffeef0" : order.status === "Delivered" ? "#e6f9ed" : "#fff8e6",
-                    color: order.status === "Canceled" ? "#dc3545" : order.status === "Delivered" ? "#28a745" : "#ffc107"
-                  }}>
-                    {order.status}
-                  </span>
-                </div>
-              </div>
-
-              {order.items && order.items.map((item, idx) => (
-                <div key={idx} style={styles.itemRow}>
-                  <img src={item.img} alt={item.name} style={styles.itemImg} />
-                  <div style={styles.itemDetails}>
-                    <h4 style={styles.itemName}>{item.name}</h4>
-                    <p style={styles.itemMeta}>Qty: {item.quantity || 1} | Price: ₹{item.price}</p>
+    <div style={{ 
+      backgroundColor: '#f5f5f7', 
+      minHeight: '100vh', 
+      padding: '48px 20px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    }}>
+      <div style={{ maxWidth: '850px', margin: '0 auto' }}>
+        
+        <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#1c1c1e', marginBottom: '8px' }}>Your Orders</h2>
+        <p style={{ color: '#8e8e93', margin: '0 0 32px 0', fontSize: '15px' }}>
+          Logged in as: <span style={{ color: '#1c1c1e', fontWeight: '500' }}>{user?.email || 'Guest Session'}</span>
+        </p>
+        
+        {myOrders.length === 0 ? (
+          <div style={{ 
+            textAlign: 'center', padding: '60px 20px', backgroundColor: '#ffffff', 
+            borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', border: '1px solid #e5e5ea' 
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
+            <h3 style={{ fontSize: '18px', color: '#1c1c1e', margin: '0 0 8px 0' }}>No Orders Found</h3>
+            <p style={{ color: '#8e8e93', margin: 0, fontSize: '14px' }}>Looks like you haven't placed any fashion orders yet.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {myOrders.map((order) => (
+              <div 
+                key={order.orderId} 
+                style={{ 
+                  backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px',
+                  boxShadow: '0 4px 18px rgba(0,0,0,0.03)', border: '1px solid #e5e5ea',
+                  transition: 'transform 0.2s ease'
+                }}
+              >
+                {/* Order Top Banner Header Area */}
+                <div style={{ 
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  borderBottom: '1px solid #f2f2f7', paddingBottom: '16px', marginBottom: '20px' 
+                }}>
+                  <div>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#8e8e93', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Order Reference</span>
+                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#1c1c1e', marginTop: '2px' }}>#{order.orderId}</div>
+                    <div style={{ fontSize: '13px', color: '#8e8e93', marginTop: '4px' }}>Placed on {order.date}</div>
+                  </div>
+                  
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ 
+                      backgroundColor: '#e4f9f0', color: '#10b981', padding: '6px 14px', 
+                      borderRadius: '20px', fontSize: '13px', fontWeight: '600', display: 'inline-block'
+                    }}>
+                      ● {order.status}
+                    </span>
                   </div>
                 </div>
-              ))}
-
-              <div style={styles.orderFooter}>
-                <div style={styles.totalText}>Grand Total: <strong>₹{order.grandTotal || order.total}</strong></div>
                 
-                <button
-                  style={{
-                    ...styles.cancelButton,
-                    backgroundColor: (order.status === "Canceled" || order.status === "Delivered") ? "#f8f9fa" : "#dc3545",
-                    color: (order.status === "Canceled" || order.status === "Delivered") ? "#6c757d" : "#fff",
-                    cursor: (order.status === "Canceled" || order.status === "Delivered") ? "not-allowed" : "pointer"
-                  }}
-                  onClick={() => initiateCancelOrder(order.orderId)}
-                  disabled={order.status === "Canceled" || order.status === "Delivered"}
-                >
-                  {order.status === "Canceled" ? "Canceled" : order.status === "Delivered" ? "Delivered" : "Cancel Order"}
-                </button>
-              </div>
-              
-              {order.status === "Canceled" && order.cancellationReason && (
-                <div style={styles.reasonNote}>
-                  <strong>Cancellation Reason:</strong> "{order.cancellationReason}"
+                {/* Inner Delivery Content Core Grid */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {order.items.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                      <img 
+                        src={item.image || 'https://via.placeholder.com/150'} 
+                        alt="" 
+                        style={{ width: '64px', height: '80px', objectFit: 'cover', borderRadius: '8px', backgroundColor: '#f5f5f7' }} 
+                      />
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '600', color: '#1c1c1e' }}>{item.name}</h4>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#8e8e93' }}>
+                          Size: <strong style={{ color: '#1c1c1e' }}>{item.size || 'M'}</strong> &nbsp;|&nbsp; Qty: <strong style={{ color: '#1c1c1e' }}>{item.quantity}</strong>
+                        </p>
+                      </div>
+                      <div style={{ fontSize: '16px', fontWeight: '600', color: '#1c1c1e' }}>
+                        ₹{item.price * item.quantity}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+                
+                {/* Bottom Total Segment Summary Footer */}
+                <div style={{ 
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f2f2f7' 
+                }}>
+                  <div>
+                    <span style={{ fontSize: '13px', color: '#8e8e93' }}>Estimated Delivery</span>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#1c1c1e', marginTop: '2px' }}>🚚 By {order.deliveryEstimate}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '13px', color: '#8e8e93' }}>Total Paid</span>
+                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#ff3f6c', marginTop: '2px' }}>₹{order.grandTotal}</div>
+                  </div>
+                </div>
 
-      {showReasonModal && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
-            <h3 style={styles.modalTitle}>Cancel Order #{selectedOrderId}</h3>
-            <form onSubmit={handleConfirmCancellation}>
-              <select value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} style={styles.dropdown} required>
-                <option value="">-- Choose an option --</option>
-                <option value="Changed my mind / Want to reorder">Changed my mind / Want to reorder</option>
-                <option value="Found a better deal somewhere else">Found a better deal somewhere else</option>
-                <option value="Other">Other Reason</option>
-              </select>
-              {cancelReason === "Other" && (
-                <textarea placeholder="Specify custom reason..." value={customReason} onChange={(e) => setCustomReason(e.target.value)} style={styles.textarea} rows="3" required />
-              )}
-              <div style={styles.modalActions}>
-                <button type="button" onClick={() => setShowReasonModal(false)} style={styles.backButton}>Keep Order</button>
-                <button type="submit" style={styles.confirmButton}>Confirm Cancellation</button>
               </div>
-            </form>
+            ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
-
-const styles = {
-  container: { maxWidth: '850px', margin: '40px auto', padding: '0 20px', fontFamily: 'sans-serif' },
-  heading: { fontSize: '24px', fontWeight: 'bold', borderBottom: '2px solid #f0f0f0', paddingBottom: '12px', marginBottom: '24px' },
-  ordersGrid: { display: 'flex', flexDirection: 'column', gap: '25px' },
-  orderCard: { border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px', backgroundColor: '#fff' },
-  orderHeader: { display: 'flex', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid #edf2f7', fontSize: '14px' },
-  metaLabel: { color: '#718096', fontWeight: 'bold' },
-  statusBadge: { padding: '4px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '12px' },
-  itemRow: { display: 'flex', gap: '20px', padding: '16px 0', borderBottom: '1px solid #f7fafc', alignItems: 'center' },
-  itemImg: { width: '65px', height: '65px', objectFit: 'cover', borderRadius: '6px' },
-  itemDetails: { flex: 1 },
-  itemName: { margin: '0 0 4px 0', fontSize: '16px', fontWeight: '600' },
-  itemMeta: { margin: 0, color: '#4a5568', fontSize: '13px' },
-  orderFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px' },
-  totalText: { fontSize: '16px' },
-  cancelButton: { padding: '10px 20px', border: 'none', borderRadius: '4px', fontWeight: 'bold', fontSize: '13px' },
-  reasonNote: { marginTop: '15px', padding: '12px', backgroundColor: '#f7fafc', borderRadius: '4px', fontSize: '13px', borderLeft: '4px solid #dc3545' },
-  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 999 },
-  modalContent: { backgroundColor: '#fff', padding: '30px', borderRadius: '6px', width: '90%', maxWidth: '450px' },
-  modalTitle: { margin: '0 0 20px 0', fontSize: '18px', fontWeight: 'bold' },
-  dropdown: { width: '100%', padding: '10px', marginBottom: '15px' },
-  textarea: { width: '100%', padding: '10px', boxSizing: 'border-box' },
-  modalActions: { display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' },
-  backButton: { padding: '8px 16px', backgroundColor: '#e2e8f0', border: 'none', borderRadius: '4px' },
-  confirmButton: { padding: '8px 16px', backgroundColor: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px' }
-};

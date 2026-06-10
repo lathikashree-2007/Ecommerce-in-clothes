@@ -1,138 +1,71 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 
-export default function ProductDetail({ productsList = [], products = [], addToCart }) {
+function ProductDetail({ products = [], addToCart, toggleWishlist, wishlist = [] }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [selectedSize, setSelectedSize] = useState('');
-  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [selectedSize, setSelectedSize] = useState('M');
 
-  // 1. Safe fallback resolution to locate the matching item
-  const coreProductsArray = productsList.length > 0 ? productsList : products;
-  const product = coreProductsArray.find(p => String(p.id) === String(id));
+  // 💡 FIXED: Locate item checking against MongoDB's unique string parameter '_id' rather than 'id'
+  const product = products.find((p) => p._id === id);
 
-  // 2. Crash Guard: If the product database is loading or the ID doesn't exist, show a helpful message instead of a blank screen
   if (!product) {
     return (
-      <div style={{ padding: '60px 4%', textAlign: 'center', minHeight: '70vh', fontFamily: 'sans-serif' }}>
-        <h2>Product Not Found</h2>
-        <p style={{ color: '#666' }}>We couldn't locate the catalog item with ID: {id}. It might have been cleared from local storage.</p>
-        <button 
-          onClick={() => navigate('/')} 
-          style={{ padding: '10px 20px', background: '#111', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '15px' }}
-        >
-          Return to Catalog
-        </button>
+      <div style={{ textAlign: 'center', padding: '80px 20px', fontFamily: 'sans-serif' }}>
+        <h2 style={{ fontSize: '2rem', marginBottom: '10px' }}>Product Not Found</h2>
+        <p style={{ color: '#666', marginBottom: '20px' }}>We couldn't locate the catalog item with ID: {id}.</p>
+        <Link to="/" style={{ padding: '12px 24px', background: '#1a202c', color: '#fff', textDecoration: 'none', borderRadius: '4px', fontWeight: 'bold' }}>Return to Catalog</Link>
       </div>
     );
   }
 
-  const handleOrderSubmission = () => {
-    if (!selectedSize && product.size && product.size.length > 0 && product.size[0] !== "Free Size") {
-      alert("Please select a variant size option before ordering.");
-      return;
-    }
-
-    // Call the parent state handler to inject the item into your persistent global bag
-    if (addToCart) {
-      addToCart({
-        ...product,
-        chosenSize: selectedSize || product.size?.[0] || "Standard"
-      });
-    }
-
-    setOrderPlaced(true);
-    alert(`🎉 Success! Added "${product.name}" to your secure bag.`);
-  };
+  const isWishlisted = wishlist.some((w) => w._id === product._id);
 
   return (
-    <div style={{ padding: '40px 6%', minHeight: '80vh', fontFamily: 'sans-serif', display: 'flex', gap: '50px', flexWrap: 'wrap' }}>
-      
-      {/* LEFT COLUMN: VISUAL MEDIA CONTAINER */}
+    <div style={{ padding: '40px 6%', display: 'flex', gap: '50px', flexWrap: 'wrap', background: '#fff', fontFamily: 'sans-serif' }}>
+      {/* Product Image Gallery Panel */}
       <div style={{ flex: '1 1 400px', maxWidth: '500px' }}>
-        <img 
-          src={product.img || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600"} 
-          alt={product.name} 
-          style={{ width: '100%', borderRadius: '8px', objectFit: 'cover', border: '1px solid #eee' }} 
-        />
+        <img src={product.img} alt={product.name} style={{ width: '100%', borderRadius: '8px', objectFit: 'cover', maxHeight: '600px', border: '1px solid #f0f0f0' }} />
       </div>
 
-      {/* RIGHT COLUMN: DISPATCH/ORDER MATRIX SUMMARY */}
-      <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>
-        <span style={{ textTransform: 'uppercase', color: '#777', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px' }}>{product.brand || "FashionHub Core"}</span>
-        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '800' }}>{product.name}</h1>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', margin: '5px 0' }}>
-          <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff3f6c' }}>₹{product.price}</span>
-          {product.oldPrice && <span style={{ textDecoration: 'line-through', color: '#aaa', fontSize: '16px' }}>₹{product.oldPrice}</span>}
-          {product.discount && <span style={{ color: '#27ae60', fontSize: '14px', fontWeight: 'bold' }}>({product.discount}% OFF)</span>}
+      {/* Retail Specs Detail Info Interface Panel */}
+      <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div>
+          <span style={{ fontSize: '0.9rem', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>{product.brand}</span>
+          <h1 style={{ fontSize: '1.8rem', margin: '5px 0', fontWeight: '700', color: '#1a202c' }}>{product.name}</h1>
+          <p style={{ color: '#666', fontSize: '0.95rem', lineHeight: '1.5', margin: '10px 0' }}>{product.description || "Premium high-quality wardrobe staple tailored for absolute lifestyle luxury, versatility, and comfort."}</p>
         </div>
 
-        <p style={{ color: '#444', fontSize: '14px', lineHeight: '1.6', margin: '10px 0' }}>
-          {product.desc || "High-quality, curated garment inventory layer built sustainably for versatile everyday wardrobe configuration styles."}
-        </p>
+        {/* Pricing Segment */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid #eee', paddingBottom: '20px' }}>
+          <span style={{ fontSize: '2rem', fontWeight: '800', color: '#1a202c' }}>₹{product.price}</span>
+          <span style={{ textDecoration: 'line-through', color: '#aaa', fontSize: '1.1rem' }}>₹{Math.floor(product.price * 1.4)}</span>
+          <span style={{ color: '#ff905a', fontWeight: 'bold', fontSize: '1rem' }}>(40% OFF)</span>
+        </div>
 
-        <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '10px 0' }} />
-
-        {/* SIZE VARIANT INPUT CONTROLS */}
-        {product.size && product.size.length > 0 && (
-          <div>
-            <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>SELECT SIZE</h4>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {product.size.map((sz) => (
-                <button
-                  key={sz}
-                  onClick={() => setSelectedSize(sz)}
-                  style={{
-                    padding: '10px 18px',
-                    border: selectedSize === sz ? '2px solid #ff3f6c' : '1px solid #ccc',
-                    background: selectedSize === sz ? '#fff' : '#f9f9f9',
-                    color: selectedSize === sz ? '#ff3f6c' : '#111',
-                    fontWeight: 'bold',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    transition: 'all 0.1s ease'
-                  }}
-                >
-                  {sz}
-                </button>
-              ))}
-            </div>
+        {/* Myntra / Flipkart Size Picker Matrix */}
+        <div>
+          <h4 style={{ fontSize: '0.9rem', marginBottom: '10px', textTransform: 'uppercase', color: '#222' }}>Select Size</h4>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {['S', 'M', 'L', 'XL'].map((size) => (
+              <button key={size} onClick={() => setSelectedSize(size)} style={{ width: '45px', height: '45px', borderRadius: '50%', border: selectedSize === size ? '2px solid #1a202c' : '1px solid #ccc', background: selectedSize === size ? '#1a202c' : '#fff', color: selectedSize === size ? '#fff' : '#333', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s' }}>{size}</button>
+            ))}
           </div>
-        )}
+        </div>
 
-        {/* ORDER DISPATCH ACTIONS */}
-        <div style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
-          <button 
-            onClick={handleOrderSubmission}
-            style={{
-              flex: 1, padding: '15px', background: '#ff3f6c', color: '#fff',
-              border: 'none', borderRadius: '4px', fontSize: '15px', fontWeight: 'bold',
-              cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.5px'
-            }}
-          >
-            🛒 Add to Shopping Bag
+        {/* Actions Button Row (Add To Bag / Wishlist) */}
+        <div style={{ display: 'flex', gap: '15px', marginTop: '15px' }}>
+          <button onClick={() => addToCart(product, selectedSize)} style={{ flex: '2', padding: '16px', background: '#ff3f6c', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', boxShadow: '0 4px 12px rgba(255,63,108,0.2)' }}>
+            🛍️ Add to Bag
           </button>
           
-          <button 
-            onClick={() => navigate('/orders')}
-            style={{
-              padding: '15px 20px', background: '#111', color: '#fff',
-              border: 'none', borderRadius: '4px', fontSize: '14px', fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
-          >
-            📦 Track Orders
+          <button onClick={() => toggleWishlist(product)} style={{ flex: '1', padding: '16px', background: '#fff', color: '#333', border: '1px solid #d4d5d9', borderRadius: '6px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+            {isWishlisted ? '❤️ Saved' : '🤍 Wishlist'}
           </button>
         </div>
-
-        {orderPlaced && (
-          <div style={{ marginTop: '15px', padding: '12px', background: '#e8f8f5', color: '#27ae60', borderRadius: '4px', fontSize: '13px', fontWeight: '600', border: '1px solid #d1f2eb' }}>
-            ✓ Item checked out successfully. You can inspect tracking data instantly inside your Dashboard portal!
-          </div>
-        )}
       </div>
-
     </div>
   );
 }
+
+export default ProductDetail;

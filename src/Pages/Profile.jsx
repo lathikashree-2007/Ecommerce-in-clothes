@@ -1,105 +1,85 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 
-// Added defensive fallback defaults directly into parameters (= {} and = [])
-function Profile({ 
-  profile = {}, 
-  userProfile = {}, 
-  wishlist = [], 
-  onLogout = () => {}, 
-  moveWishlistToCart = () => {} 
-}) {
+export default function Profile({ user, onLogout, wishlist = [], toggleWishlist, addToCart, orders = [] }) {
   
-  // Clean cross-compatibility resolution for user profiles
-  const activeProfile = profile && Object.keys(profile).length > 0 ? profile : userProfile;
-
-  // Local interface toggle states for modifying user data parameters
-  const [isEditing, setIsEditing] = useState(false);
-  const [localPhone, setLocalPhone] = useState(activeProfile?.phone || "9876543210");
-  const [localAddress, setLocalAddress] = useState(activeProfile?.address || "402, Sapphire Block, Bangalore - 560102");
-
-  const handleProfileSaveChanges = (e) => {
-    e.preventDefault();
-    setIsEditing(false);
-    alert("Profile security parameters synchronized successfully!");
+  const handleMoveToBag = (product) => {
+    if (typeof addToCart === 'function') {
+      addToCart(product, 'M'); // Adds product to global shopping cart bag with a default size 'M'
+      
+      // Optional: Automatically remove it from wishlist once moved to the bag (Myntra style)
+      if (typeof toggleWishlist === 'function') {
+        toggleWishlist(product);
+      }
+    } else {
+      console.error("addToCart function prop is missing or not mapped into Profile.jsx properly.");
+      alert("System Error: Unable to move item to bag.");
+    }
   };
 
   return (
-    <div style={{ padding: '30px 6%', minHeight: '85vh' }}>
+    <div style={{ padding: '40px 6%', background: '#f7f8fa', minHeight: '90vh', fontFamily: 'sans-serif' }}>
       
-      {/* TWO-COLUMN DESIGN: USER ACCOUNT ARTIFACTS vs BOOKMARKED WISHLIST */}
+      {/* Main Profile Layout Architecture Split Grid */}
       <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
         
-        {/* LEFT COLUMN: IDENTITY MANAGEMENT PROFILE CARD */}
-        <div style={{ flex: '1 1 300px', background: 'var(--card-bg, #fff)', border: '1px solid rgba(0,0,0,0.06)', padding: '25px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-            <div style={{ width: '80px', height: '80px', background: '#333', color: '#fff', fontSize: '2rem', fontWeight: '800', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
-              {activeProfile?.name ? activeProfile.name.charAt(0).toUpperCase() : 'U'}
-            </div>
-            <h3 style={{ margin: 0, fontWeight: '800' }}>{activeProfile?.name || "Premium Shopper"}</h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#777' }}>{activeProfile?.email || "shopper@fashionhub.com"}</p>
+        {/* LEFT COLUMN: Premium Shopper Profile Summary Side-Card */}
+        <div style={{ flex: '1 1 280px', background: '#fff', padding: '30px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+          <div style={{ width: '90px', height: '90px', borderRadius: '50%', backgroundColor: '#1a202c', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold', margin: '0 auto 15px auto' }}>
+            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
           </div>
-
-          <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '20px 0' }} />
-
-          {!isEditing ? (
-            <div style={{ fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div><strong style={{ display: 'block', color: '#777', fontSize: '0.7rem', textTransform: 'uppercase' }}>Mobile Contact:</strong> {localPhone}</div>
-              <div><strong style={{ display: 'block', color: '#777', fontSize: '0.7rem', textTransform: 'uppercase' }}>Shipping Destination:</strong> {localAddress}</div>
-              <button onClick={() => setIsEditing(true)} style={{ marginTop: '10px', width: '100%', padding: '10px', background: '#111', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>Edit Meta Credentials</button>
-            </div>
-          ) : (
-            <form onSubmit={handleProfileSaveChanges} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: '700', color: '#555' }}>CONTACT PHONE</label>
-                <input type="tel" value={localPhone} onChange={(e) => setLocalPhone(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px' }} required />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: '700', color: '#555' }}>SHIPPING HUB ADDRESS</label>
-                <textarea value={localAddress} onChange={(e) => setLocalAddress(e.target.value)} rows="3" style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px', resize: 'none', fontFamily: 'inherit' }} required />
-              </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" style={{ flex: 1, padding: '8px', background: '#27ae60', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
-                <button type="button" onClick={() => setIsEditing(false)} style={{ flex: 1, padding: '8px', background: '#ccc', color: '#111', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              </div>
-            </form>
-          )}
-
-          <button onClick={onLogout} style={{ marginTop: '25px', width: '100%', padding: '10px', background: 'transparent', color: '#ff4d4d', border: '1px solid #ff4d4d', borderRadius: '4px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>Sign Out From System</button>
+          <h3 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', fontWeight: '800' }}>{user?.name || "Premium Shopper"}</h3>
+          <p style={{ color: '#718096', fontSize: '0.9rem', margin: '0 0 20px 0' }}>{user?.email || "customer@fashionhub.com"}</p>
+          
+          <div style={{ borderTop: '1px solid #edf2f7', paddingTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <Link to="/orders" style={{ textDecoration: 'none', color: '#2b6cb0', fontSize: '0.95rem', fontWeight: 'bold' }}>
+              📦 View Order History ({orders.length})
+            </Link>
+            <button onClick={onLogout} style={{ background: 'none', border: 'none', color: '#ff3f6c', fontSize: '0.95rem', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>
+              Logout Securely
+            </button>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: CORE WISHLIST PERSISTENCE LOGIC AREA GRID */}
-        <div style={{ flex: '2 1 500px' }}>
-          <div style={{ borderBottom: '2px solid #111', paddingBottom: '10px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <h3 style={{ margin: 0, fontWeight: '900', letterSpacing: '-0.5px' }}>MY CURATED WISHLIST PORTFOLIO</h3>
-            <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: '600' }}>({(wishlist || []).length} Items Saved)</span>
-          </div>
+        {/* RIGHT COLUMN: Active Wishlist Management Display Panel */}
+        <div style={{ flex: '3 1 600px', background: '#fff', padding: '30px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '25px', textTransform: 'uppercase', color: '#1a202c', borderBottom: '2px solid #1a202c', paddingBottom: '10px' }}>
+            My Curated Wishlist Portfolio ({wishlist.length})
+          </h2>
 
-          {(wishlist || []).length === 0 ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center', border: '2px dashed #ddd', borderRadius: '8px', background: 'rgba(0,0,0,0.01)' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>❤️</div>
-              <h4 style={{ margin: '0 0 6px 0', color: '#333' }}>Your Wishlist Is Empty</h4>
-              <p style={{ margin: '0 0 20px 0', fontSize: '0.85rem', color: '#777' }}>Bookmark elite styles while browsing across collections to pin them right inside this module viewport.</p>
-              <Link to="/" style={{ display: 'inline-block', background: '#d4af37', color: '#111', textDecoration: 'none', padding: '10px 24px', borderRadius: '4px', fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>Explore Products</Link>
+          {wishlist.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '50px 20px' }}>
+              <span style={{ fontSize: '40px', display: 'block', marginBottom: '10px' }}>❤️</span>
+              <p style={{ color: '#718096', margin: '0 0 15px 0' }}>Your personalized wishlist portfolio is currently empty.</p>
+              <Link to="/" style={{ padding: '10px 20px', backgroundColor: '#1a202c', color: '#fff', textDecoration: 'none', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                Discover New Arrivals
+              </Link>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
-              {(wishlist || []).map((product) => (
-                <div key={product.id} className="wish-card" style={{ background: '#fff', border: '1px solid #eee', borderRadius: '6px', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', transition: 'box-shadow 0.2s ease' }}>
+            /* Wishlist Products Grid Layout */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '20px' }}>
+              {wishlist.map((product) => (
+                <div key={product._id} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', background: '#fff' }}>
                   
-                  <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', flexGrow: 1 }}>
-                    <div style={{ height: '200px', overflow: 'hidden' }}>
-                      <img src={product.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                    <div style={{ padding: '12px' }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#777', textTransform: 'uppercase' }}>{product.brand}</span>
-                      <h5 style={{ margin: '2px 0 6px 0', fontSize: '0.8rem', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</h5>
-                      <strong style={{ fontSize: '0.9rem', color: '#111' }}>₹{product.price}</strong>
-                    </div>
-                  </Link>
+                  {/* Remove cross layout action badge trigger */}
+                  <button onClick={() => toggleWishlist(product)} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(255,255,255,0.9)', border: 'none', width: '24px', height: '24px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#666', zIndex: 5 }}>
+                    ✕
+                  </button>
 
-                  <button onClick={() => moveWishlistToCart(product)} style={{ width: '100%', padding: '10px 0', background: '#d4af37', border: 'none', color: '#111', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.5px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                    ⚡ Move To Secure Bag
+                  <img src={product.img} alt={product.name} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+                  
+                  <div style={{ padding: '12px', flex: '1', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#ff3f6c', textTransform: 'uppercase' }}>{product.brand}</span>
+                    <h4 style={{ fontSize: '0.85rem', margin: 0, color: '#2d3748', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</h4>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.95rem', marginTop: 'auto', color: '#1a202c' }}>₹{product.price}</div>
+                  </div>
+
+                  {/* 💡 FIXED: "MOVE TO BAG" ACTION BUTTON PIPELINE */}
+                  <button 
+                    onClick={() => handleMoveToBag(product)}
+                    style={{ width: '100%', padding: '12px', background: '#ff3f6c', color: '#fff', border: 'none', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer', textTransform: 'uppercase', transition: 'background 0.2s' }}
+                  >
+                    🛍️ Move to Bag
                   </button>
 
                 </div>
@@ -109,14 +89,6 @@ function Profile({
         </div>
 
       </div>
-
-      <style>{`
-        .wish-card:hover {
-          box-shadow: 0 6px 15px rgba(0,0,0,0.08);
-        }
-      `}</style>
     </div>
   );
 }
-
-export default Profile;

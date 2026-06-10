@@ -9,7 +9,8 @@ function Category({ products = [], toggleWishlist, wishlist = [] }) {
   const [selectedBrand, setSelectedBrand] = useState('All');
   const [sortOption, setSortOption] = useState('popular');
 
-  const baseItems = products.filter(p => p.category === type.toLowerCase());
+  // URL types might come in capitalized like "Men", database values are lowercase "men"
+  const baseItems = products.filter(p => p.category && p.category.toLowerCase() === type.toLowerCase());
   
   // Dynamic filter lists compiled strictly from database specs matching the current active collection
   const uniqueBrands = ['All', ...new Set(baseItems.map(p => p.brand))];
@@ -67,10 +68,13 @@ function Category({ products = [], toggleWishlist, wishlist = [] }) {
         {sortedItems.length === 0 ? <p style={{ textAlign: 'center', color: '#888', marginTop: '40px' }}>No styles match current limits.</p> : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
             {sortedItems.map(p => (
-              <div key={p.id} style={{ background: '#fff', border: '1px solid #eee', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
-                <button onClick={() => toggleWishlist(p)} style={{ position: 'absolute', top: '8px', right: '8px', border: 'none', background: '#fff', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer' }}>{wishlist.some(w=>w.id===p.id)?'❤️':'🤍'}</button>
-                <Link to={`/product/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <img src={p.img} alt="" style={{ width: '100%', height: '240px', objectFit: 'cover' }} />
+              // 💡 FIXED: Changed keys and checking paths to use MongoDB's ._id property
+              <div key={p._id} style={{ background: '#fff', border: '1px solid #eee', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
+                <button onClick={() => toggleWishlist(p)} style={{ position: 'absolute', top: '8px', right: '8px', border: 'none', background: '#fff', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer' }}>
+                  {wishlist.some(w => w._id === p._id) ? '❤️' : '🤍'}
+                </button>
+                <Link to={`/product/${p._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <img src={p.img} alt={p.name} style={{ width: '100%', height: '240px', objectFit: 'cover' }} />
                   <div style={{ padding: '10px' }}>
                     <span style={{ fontSize: '0.7rem', color: '#999', display: 'block' }}>{p.brand}</span>
                     <h4 style={{ fontSize: '0.8rem', margin: '2px 0 4px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</h4>
@@ -86,4 +90,4 @@ function Category({ products = [], toggleWishlist, wishlist = [] }) {
   );
 }
 
-export default Category;  
+export default Category;
