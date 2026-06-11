@@ -48,7 +48,7 @@ function Application() {
 
   // Fetch Database Products
   useEffect(() => {
-    fetch('http://localhost:5000/api/products')
+    fetch('https://ecommerce-backend-5oip.onrender.com/api/products')
       .then((res) => {
         if (!res.ok) throw new Error("Failed to pipeline live database stream");
         return res.json();
