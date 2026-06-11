@@ -1,11 +1,30 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios'; // 🌐 Imported to handle live server HTTP requests
+import { useAdmin } from '../Context/AdminContext'; // 💎 Connects to your global backendUrl string
 
-// 1. Added explicit fallback defaults to props parameters to prevent "not a function" runtime breaks
-export default function Home({ productsList = [], products = [], addToCart, toggleWishlist = () => {}, wishlist = [] }) {
+export default function Home({ addToCart, toggleWishlist = () => {}, wishlist = [] }) {
+  // 1. Set up a state variable to hold the live database items locally
+  const [dbProducts, setDbProducts] = useState([]);
   
-  // Choose whichever product array state variable name is active in your application structure
-  const activeCatalogItems = productsList.length > 0 ? productsList : products;
+  // 2. Extract your production Render URL dynamically from your context provider
+  const { backendUrl } = useAdmin();
+
+  // 3. Trigger an automatic data fetch loop when the landing page loads
+  useEffect(() => {
+    if (backendUrl) {
+      axios.get(`${backendUrl}/api/products`)
+        .then((response) => {
+          setDbProducts(response.data); // Stores the database array smoothly in state
+        })
+        .catch((error) => {
+          console.error("❌ Error fetching live marketplace inventory:", error.message);
+        });
+    }
+  }, [backendUrl]);
+  
+  // Choose your real database catalog state variable for rendering down below
+  const activeCatalogItems = dbProducts;
 
   // Grab just a few featured styles for the main dashboard display showcase
   const featuredMerchandise = activeCatalogItems.slice(0, 8);
@@ -43,20 +62,25 @@ export default function Home({ productsList = [], products = [], addToCart, togg
           }}>
             {featuredMerchandise.map((product) => {
               // Safe check logic tracking if item is actively bookmarked inside wishlist arrays
-              const isSavedInWishlist = Array.isArray(wishlist) && wishlist.some(item => String(item.id) === String(product.id));
+              // Handled fallback string checking safely using fallback matching values
+              const productIdStr = product._id || product.id;
+              const isSavedInWishlist = Array.isArray(wishlist) && wishlist.some(item => {
+                const itemIdStr = item._id || item.id;
+                return String(itemIdStr) === String(productIdStr);
+              });
 
               return (
-                <div key={product.id} style={{
+                <div key={productIdStr} style={{
                   background: '#fff', border: '1px solid #eee', borderRadius: '8px',
                   overflow: 'hidden', position: 'relative', boxShadow: '0 4px 10px rgba(0,0,0,0.02)',
                   display: 'flex', flexDirection: 'column'
                 }}>
                   
-                  {/* FIXED: THE ISOLATED WISHLIST OVERLAY CLAMP CONTROL */}
+                  {/* WISHLIST OVERLAY CONTROL */}
                   <button 
                     onClick={(e) => {
                       e.preventDefault();
-                      e.stopPropagation(); // Blocks parent image route linkages from intercepting clicks
+                      e.stopPropagation(); 
                       if (typeof toggleWishlist === 'function') {
                         toggleWishlist(product);
                       }
@@ -73,9 +97,9 @@ export default function Home({ productsList = [], products = [], addToCart, togg
                   </button>
 
                   {/* ITEM PRODUCT METADATA VIEW LINKS */}
-                  <Link to={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', flexGrow: 1 }}>
+                  <Link to={`/product/${productIdStr}`} style={{ textDecoration: 'none', color: 'inherit', flexGrow: 1 }}>
                     <div style={{ height: '300px', overflow: 'hidden', backgroundColor: '#f5f5f5' }}>
-                      <img src={product.img} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={product.img || product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                     
                     <div style={{ padding: '15px', textAlign: 'left' }}>

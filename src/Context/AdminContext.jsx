@@ -6,6 +6,8 @@ export function AdminProvider({ children }) {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [token, setToken] = useState(null);
 
+  const backendUrl = "https://ecommerce-backend-5oip.onrender.com";
+
   const loginAsAdmin = (adminToken) => {
     setToken(adminToken);
     setIsAdminAuthenticated(true);
